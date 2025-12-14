@@ -15,16 +15,7 @@
 # * isFraud: fraud transaction
 
 # %%
-import matplotlib.pyplot as plt
-import numpy as np
-import seaborn as sns
-import numpy as np
-import matplotlib.pyplot as plt
 import networkx as nx
-from sklearn.preprocessing import StandardScaler
-from imblearn.over_sampling import SMOTE
-from sklearn.model_selection import train_test_split
-import pandas as pd
 import os
 import joblib
 from huggingface_hub import hf_hub_download
@@ -32,49 +23,9 @@ from huggingface_hub import hf_hub_download
 HF_TOKEN = os.getenv("HF_TOKEN")
 
 # %%
-def data_understanding(df):
-  print("\n\n=> DATA UNDERSTANDING")
-  print("-------------------------------")
-
-  print(df.head())
-
-  print("\n-> Information about the dataset features")
-  print(df.info())
-
-  print("\n-> Shape of the dataset (rows and columns)")
-  print(df.shape)
-
-  print("\n-> Distribution of categorical features")
-  categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
-  columns_to_exclude = ['nameOrig', 'nameDest']
-  categorical_cols = [col for col in categorical_cols if col not in columns_to_exclude]
-  for col in categorical_cols:
-    print(f"\nValue count for {col}:")
-    plt.figure(figsize=(6,8))
-    count = df[col].value_counts()
-    print(count)
-    plt.pie(count, labels=count.index, autopct="%1.1f%%")
-    plt.title(f"Distribution of {col}")
-    plt.show()
-
-  print("\n-> Distribution of numeric features")
-  numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist() # Numeric columns
-  for col in numeric_cols:
-    plt.figure(figsize=(10,4))
-    plt.subplot(1,2,1)
-    sns.histplot(df[col], kde=True, bins=30)
-    plt.title(f'Distribution of {col}')
-
-  print(df['nameOrig'].value_counts())
-  print(df['nameDest'].value_counts())
-
-# %%
 def feature_engineering(dataframe):
   print("\n\n=> FEATURE ENGINEERING")
   print("-------------------------------")
-
-  print("\n-> Check for missing values")
-  print(dataframe.isnull().sum())
 
   print("\n-> Encode categorcal variables")
   dataframe['type_CASH_OUT'] = (dataframe['type'] == 'CASH_OUT').astype(int)
@@ -152,9 +103,6 @@ def feature_engineering(dataframe):
 # %%
 def data_preparation(
     dataframe,
-    useSMOTE=True,
-    want_train_test_split=True,
-    fit_scaler=False,
     scaler_path=hf_hub_download(
         repo_id="sandalisingh/upi-fraud-models",
         filename="scaler.pkl",
@@ -164,60 +112,11 @@ def data_preparation(
     print("\n\n=> DATA PREPARATION")
     print("-------------------------------")
 
-    # Load or create scaler
-    if os.path.exists(scaler_path):
-        scaler = joblib.load(scaler_path)
-        print("✔ Loaded existing scaler")
-    else:
-        scaler = StandardScaler()
-        print("✔ Created new scaler")
+    scaler = joblib.load(scaler_path)
 
     # Split features and labels
     feature_names = dataframe.columns.tolist()
-    if "isFraud" not in feature_names:
-      print(dataframe.head())
-      return dataframe, feature_names, scaler
+    dataframe = scaler.transform(dataframe)
 
-    feature_names.remove("isFraud")
-
-    X = dataframe[feature_names]
-    Y = dataframe["isFraud"]
-
-    # Train-test split
-    if want_train_test_split:
-        X_train, X_test, Y_train, Y_test = train_test_split(
-            X, Y, test_size=0.20, random_state=42, shuffle=True, stratify=Y
-        )
-
-        # Fit scaler ONLY if explicitly allowed
-        if fit_scaler:
-            X_train = scaler.fit_transform(X_train)
-            joblib.dump(scaler, scaler_path)
-            print(f"✔ Scaler fitted and saved: {scaler_path}")
-        else:
-            X_train = scaler.transform(X_train)
-
-        X_test = scaler.transform(X_test)
-
-        X_train = pd.DataFrame(X_train, columns=feature_names)
-        X_test = pd.DataFrame(X_test, columns=feature_names)
-
-        # SMOTE (train only)
-        if useSMOTE:
-            print("\nBefore SMOTE:\n", Y_train.value_counts())
-            sm = SMOTE(random_state=42)
-            X_train, Y_train = sm.fit_resample(X_train, Y_train)
-            print("\nAfter SMOTE:\n", Y_train.value_counts())
-
-        return X_train, X_test, Y_train, Y_test, feature_names
-
-    # No train-test split (batch / CV)
-    else:
-        X = scaler.transform(X)
-        X = pd.DataFrame(X, columns=feature_names)
-
-        if useSMOTE:
-            sm = SMOTE(random_state=42)
-            X, Y = sm.fit_resample(X, Y)
-
-        return X, Y, feature_names
+    return dataframe, feature_names
+# %%

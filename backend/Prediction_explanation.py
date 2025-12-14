@@ -16,11 +16,6 @@ model_path = hf_hub_download(
     filename="fraud_model_histGDB.pkl",
     token=HF_TOKEN
 )
-scaler_path = hf_hub_download(
-    repo_id="sandalisingh/upi-fraud-models",
-    filename="scaler.pkl",
-    token=HF_TOKEN
-)
 feature_names_path = hf_hub_download(
     repo_id="sandalisingh/upi-fraud-models",
     filename="feature_names.json",
@@ -29,7 +24,6 @@ feature_names_path = hf_hub_download(
 
 # Load models
 model = joblib.load(model_path)
-scaler = joblib.load(scaler_path)
 with open(feature_names_path, "r") as f:
     feature_names = json.load(f)
 
@@ -97,7 +91,7 @@ def shap_explain(model, X_background, X_explain):
         model,
         data=X_background,
         feature_perturbation="interventional"
-        )
+    )
 
     shap_values = explainer(X_explain, check_additivity=False)
 
@@ -129,8 +123,7 @@ def explain_user_transaction(raw_input_dict, model=model):
 
     # data preprocessing
     single_row_df = feature_engineering(single_row_df)
-    single_row_df, feature_names, scaler = data_preparation(single_row_df, useSMOTE=False, want_train_test_split=False)
-    single_row_df = pd.DataFrame(scaler.transform(single_row_df), columns=feature_names)
+    single_row_df, feature_names = data_preparation(single_row_df)
     print(single_row_df)
 
     # Generate explanation

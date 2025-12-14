@@ -10,6 +10,7 @@ __pycache__/
 *.pkl
 *.joblib
 *.json
+*training*
 
 # Node modules
 node_modules/
