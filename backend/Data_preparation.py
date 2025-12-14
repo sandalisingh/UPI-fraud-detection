@@ -27,6 +27,9 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import os
 import joblib
+from huggingface_hub import hf_hub_download
+
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 # %%
 def data_understanding(df):
@@ -152,7 +155,11 @@ def data_preparation(
     useSMOTE=True,
     want_train_test_split=True,
     fit_scaler=False,
-    scaler_path="scaler.pkl"
+    scaler_path=hf_hub_download(
+        repo_id="sandalisingh/upi-fraud-models",
+        filename="scaler.pkl",
+        token=HF_TOKEN
+    )
 ):
     print("\n\n=> DATA PREPARATION")
     print("-------------------------------")
