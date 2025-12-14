@@ -5,6 +5,34 @@ import json
 import shap
 import pandas as pd
 import numpy as np
+from huggingface_hub import hf_hub_download
+import joblib
+import os
+
+HF_TOKEN = os.getenv("HF_TOKEN")
+
+# Download files from Hugging Face
+model_path = hf_hub_download(
+    repo_id="username/upi-fraud-models",
+    filename="fraud_model_histGDB.pkl",
+    token=HF_TOKEN
+)
+scaler_path = hf_hub_download(
+    repo_id="username/upi-fraud-models",
+    filename="scaler.pkl",
+    token=HF_TOKEN
+)
+feature_names_path = hf_hub_download(
+    repo_id="username/upi-fraud-models",
+    filename="feature_names.json",
+    token=HF_TOKEN
+)
+
+# Load models
+model = joblib.load(model_path)
+scaler = joblib.load(scaler_path)
+with open(feature_names_path, "r") as f:
+    feature_names = json.load(f)
 
 # %%
 feature_descriptions = {
@@ -75,17 +103,6 @@ def shap_explain(model, X_background, X_explain):
     shap_values = explainer(X_explain, check_additivity=False)
 
     shap.summary_plot(shap_values, X_explain)
-
-# %%
-MODEL_PATH = "fraud_model_histGDB.pkl" 
-SCALER_PATH = "scaler.pkl"
-FEATURE_NAMES_PATH = "feature_names.json"
-
-model = joblib.load(MODEL_PATH)
-scaler = joblib.load(SCALER_PATH)
-
-with open(FEATURE_NAMES_PATH, "r") as f:
-    feature_names = json.load(f)
 
 # %%
 def generate_reason_text(shap_vals, feature_names, X_single, top_k=3):
