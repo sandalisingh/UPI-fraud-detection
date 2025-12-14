@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
-from Prediction_explaination import explain_user_transaction
+from backend.Prediction_explanation import explain_user_transaction
 
 # FastAPI app
 app = FastAPI(title="UPI Fraud Detection API")
