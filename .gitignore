@@ -9,8 +9,8 @@ __pycache__/
 *.csv
 *.pkl
 *.joblib
-*.json
 *training*
+*feature_names*
 
 # Node modules
 node_modules/
