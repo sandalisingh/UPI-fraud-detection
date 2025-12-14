@@ -13,17 +13,17 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 
 # Download files from Hugging Face
 model_path = hf_hub_download(
-    repo_id="username/upi-fraud-models",
+    repo_id="sandalisingh/upi-fraud-models",
     filename="fraud_model_histGDB.pkl",
     token=HF_TOKEN
 )
 scaler_path = hf_hub_download(
-    repo_id="username/upi-fraud-models",
+    repo_id="sandalisingh/upi-fraud-models",
     filename="scaler.pkl",
     token=HF_TOKEN
 )
 feature_names_path = hf_hub_download(
-    repo_id="username/upi-fraud-models",
+    repo_id="sandalisingh/upi-fraud-models",
     filename="feature_names.json",
     token=HF_TOKEN
 )
