@@ -4,3 +4,12 @@ pandas
 scikit-learn
 joblib
 shap
+matplotlib
+os
+huggingface_hub
+numpy
+json
+pandas
+seaborn
+networkx
+imbalanced-learn
