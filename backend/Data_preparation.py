@@ -16,11 +16,8 @@
 
 # %%
 import networkx as nx
-import os
-import joblib
-from huggingface_hub import hf_hub_download
-
-HF_TOKEN = os.getenv("HF_TOKEN")
+from backend import get_scaler
+import pandas as pd
 
 # %%
 def feature_engineering(dataframe):
@@ -101,22 +98,16 @@ def feature_engineering(dataframe):
   return dataframe
 
 # %%
-def data_preparation(
-    dataframe,
-    scaler_path=hf_hub_download(
-        repo_id="sandalisingh/upi-fraud-models",
-        filename="scaler.pkl",
-        token=HF_TOKEN
-    )
-):
+def data_preparation(dataframe):
     print("\n\n=> DATA PREPARATION")
     print("-------------------------------")
 
-    scaler = joblib.load(scaler_path)
+    scaler = get_scaler()
 
     # Split features and labels
     feature_names = dataframe.columns.tolist()
     dataframe = scaler.transform(dataframe)
+    dataframe =  pd.DataFrame(dataframe, columns=feature_names)
 
     return dataframe, feature_names
 # %%

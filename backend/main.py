@@ -27,6 +27,10 @@ class Transaction(BaseModel):
     newbalanceDest: float
     isFlaggedFraud: int
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
 # Prediction endpoint
 @app.post("/predict")
 def predict_fraud(txn: Transaction):

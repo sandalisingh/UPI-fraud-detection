@@ -1,31 +1,12 @@
 # %%
 from backend.Data_preparation import data_preparation, feature_engineering
-import joblib
-import json
 import shap
 import pandas as pd
 import numpy as np
-from huggingface_hub import hf_hub_download
-import os
-
-HF_TOKEN = os.getenv("HF_TOKEN")
-
-# Download files from Hugging Face
-model_path = hf_hub_download(
-    repo_id="sandalisingh/upi-fraud-models",
-    filename="fraud_model_histGDB.pkl",
-    token=HF_TOKEN
+from backend import (
+    get_HGDB_model,
+    get_feature_names
 )
-feature_names_path = hf_hub_download(
-    repo_id="sandalisingh/upi-fraud-models",
-    filename="feature_names.json",
-    token=HF_TOKEN
-)
-
-# Load models
-model = joblib.load(model_path)
-with open(feature_names_path, "r") as f:
-    feature_names = json.load(f)
 
 # %%
 feature_descriptions = {
@@ -117,7 +98,10 @@ def generate_reason_text(shap_vals, feature_names, X_single, top_k=3):
     return reasons
 
 # %%
-def explain_user_transaction(raw_input_dict, model=model):
+def explain_user_transaction(raw_input_dict):
+    model=get_HGDB_model()
+    feature_names = get_feature_names()
+
     # convert user input → dataframe
     single_row_df = pd.DataFrame([raw_input_dict])
 
