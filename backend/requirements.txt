@@ -2,11 +2,7 @@ fastapi
 uvicorn
 pandas
 numpy
-scikit-learn
 joblib
 shap
-matplotlib
-seaborn
 networkx
-imbalanced-learn
 huggingface_hub
