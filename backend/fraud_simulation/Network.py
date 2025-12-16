@@ -3,7 +3,6 @@ import random
 import uuid
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from collections import deque
 from river import tree, preprocessing, metrics, compose

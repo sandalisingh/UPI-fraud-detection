@@ -10,6 +10,7 @@ __pycache__/
 *.pkl
 *.joblib
 *training*
+*simulation*
 *feature_names*
 
 # Node modules
