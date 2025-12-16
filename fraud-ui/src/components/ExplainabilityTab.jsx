@@ -38,7 +38,7 @@ export default function ExplainabilityTab() {
 
   const submit = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/predict_V2", {
+      const res = await fetch("https://upi-fraud-detection-sizg.onrender.com/predict_V2", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
