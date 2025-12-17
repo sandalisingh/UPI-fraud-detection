@@ -1,29 +1,215 @@
-import PredictionTab from "./components/PredictionTab";
-import ExplainabilityTab from "./components/ExplainabilityTab";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// ---------------- CONFIG ----------------
+const TRANSACTION_FIELDS = [
+  { label: "Transaction ID", key: "Transaction_ID" },
+  { label: "Timestamp", key: "Timestamp" },
+  { label: "Receiver ID", key: "Receiver_ID" },
+  { label: "Mark if first time receiver", key: "Is_First_Time_Receiver" },
+  { label: "Amount", key: "Amount" },
+  { label: "Transaction type", key: "Transaction_Type" },
+  { label: "Channel", key: "Channel" },
+  { label: "Network type", key: "Network_Type" },
+];
+
+const USER_FIELDS = [
+  { label: "Sender ID", key: "Sender_ID" },
+  { label: "Device ID", key: "Device_ID" },
+  { label: "Geographical jump", key: "Geo_Jump" },
+  { label: "Sender account age", key: "Sender_Account_Age" },
+  { label: "Average transaction value", key: "Avg_Transaction_Value" },
+  { label: "Transaction Count for past 1 hour", key: "Txn_Count_1h" },
+  { label: "Time since last transaction", key: "Time_Since_Last_Txn" },
+];
+
+const OPTIONS = {
+  Transaction_Type: [
+    { label: "P2P", value: "P2P" },
+    { label: "P2M", value: "P2M" },
+    { label: "Bill Pay", value: "Bill_Pay" },
+    { label: "Collect Request", value: "Collect_Request" },
+  ],
+  Channel: [
+    { label: "QR Scan", value: "QR_Scan" },
+    { label: "Intent Link", value: "Intent_Link" },
+    { label: "Manual VPA", value: "Manual_VPA" },
+  ],
+  Network_Type: [
+    { label: "4G", value: "4G" },
+    { label: "5G", value: "5G" },
+    { label: "Public WiFi", value: "Public_WiFi" },
+  ],
+};
+
+const NUMERIC_FIELDS = [
+  "Amount",
+  "Sender_Account_Age",
+  "Avg_Transaction_Value",
+  "Geo_Jump",
+  "Txn_Count_1h",
+  "Time_Since_Last_Txn",
+];
+
+// ---------------- INITIAL STATE ----------------
+const initialForm = [...TRANSACTION_FIELDS, ...USER_FIELDS].reduce((acc, f) => {
+  acc[f.key] = OPTIONS[f.key] ? OPTIONS[f.key][0] : "";
+  if (f.key === "Is_First_Time_Receiver") acc[f.key] = false;
+  return acc;
+}, {});
 
 export default function App() {
+  const [form, setForm] = useState(initialForm);
+  const [explanation, setExplanation] = useState(null);
+
+  const handleChange = (key, value) => {
+    if (NUMERIC_FIELDS.includes(key)) {
+      value = value === "" ? "" : parseFloat(value);
+    }
+    setForm({ ...form, [key]: value });
+  };
+
+  const submit = async () => {
+    try {
+      const res = await fetch("https://upi-fraud-detection-sizg.onrender.com/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+      setExplanation(data);
+    } catch (err) {
+      console.error("Error submitting form:", err);
+    }
+  };
+
+  const renderField = ({ label, key }) => {
+    if (key === "Is_First_Time_Receiver") {
+      return (
+        <div key={key} className="flex items-center justify-between">
+          <label className="text-sm font-medium">{label}</label>
+          <button
+            type="button"
+            className={`w-10 h-10 rounded-full border flex items-center justify-center ${form[key] ? "bg-green-500 text-white" : "bg-white"
+              }`}
+            onClick={() => handleChange(key, !form[key])}
+          >
+            {form[key] ? "✓" : ""}
+          </button>
+        </div>
+      );
+    }
+
+    if (OPTIONS[key]) {
+      return (
+        <div key={key} className="space-y-1">
+          <label className="text-sm font-medium">{label}</label>
+          <Select value={form[key]} onValueChange={(v) => handleChange(key, v)}>
+            <SelectTrigger>
+              <SelectValue placeholder={`Select ${label}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {OPTIONS[key].map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+        </div>
+      );
+    }
+
+    return (
+      <div key={key} className="space-y-1">
+        <label className="text-sm font-medium">{label}</label>
+        <Input
+          type={key === "Timestamp" ? "datetime-local" : NUMERIC_FIELDS.includes(key) ? "number" : "text"}
+          step={NUMERIC_FIELDS.includes(key) ? "any" : undefined}
+          required
+          value={form[key]}
+          onChange={(e) => handleChange(key, e.target.value)}
+        />
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
-      <Card className="w-full max-w-3xl shadow-xl rounded-2xl">
-        <CardContent className="p-6">
-          <h1 className="text-2xl font-bold text-center mb-4">UPI Fraud Detection</h1>
+      <Card className="w-full max-w-4xl shadow-xl rounded-2xl">
+        <CardContent className="p-6 space-y-6">
+          <h1 className="text-2xl font-bold text-center">UPI Fraud Detection</h1>
 
-          <Tabs defaultValue="model1">
-            <TabsList className="grid grid-cols-2 mb-6">
-              <TabsTrigger value="model1">Model V1</TabsTrigger>
-              <TabsTrigger value="model2">Model V2</TabsTrigger>
-            </TabsList>
+          {/* USER INFO */}
+          <section>
+            <h2 className="text-lg font-semibold mb-2">User Information</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {USER_FIELDS.map(renderField)}
+            </div>
+          </section>
 
-            <TabsContent value="model1">
-              <PredictionTab />
-            </TabsContent>
+          {/* TRANSACTION INFO */}
+          <section>
+            <h2 className="text-lg font-semibold mb-2">Transaction Information</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {TRANSACTION_FIELDS.map(renderField)}
+            </div>
+          </section>
 
-            <TabsContent value="model2">
-              <ExplainabilityTab />
-            </TabsContent>
-          </Tabs>
+          <Button className="w-full" onClick={submit}>Analyze Transaction Risk</Button>
+
+          {explanation && (() => {
+            const isFraud =
+              explanation.is_fraud === true ||
+              explanation.fraud_type?.toLowerCase() !== "legit";
+
+            return (
+              <div
+                className={`mt-4 p-4 rounded-xl border ${isFraud
+                    ? "bg-red-50 border-red-300"
+                    : "bg-green-50 border-green-300"
+                  }`}
+              >
+                <h2
+                  className={`text-lg font-bold ${isFraud ? "text-red-700" : "text-green-700"
+                    }`}
+                >
+                  {isFraud ? "🚩 FRAUD ALERT" : "LEGIT TRANSACTION"}
+                </h2>
+
+                <p>
+                  {isFraud
+                    ? "Transaction blocked as potential fraud."
+                    : "Transaction is safe and approved."}
+                </p>
+
+                {explanation.fraud_type && (
+                  <p className="mt-1">
+                    Predicted type: <b>{explanation.fraud_type}</b>
+                  </p>
+                )}
+
+                {explanation.reasons && (
+                  <div className="mt-3">
+                    <p className="font-semibold">REASONING:</p>
+                    <ul className="list-disc ml-6 text-sm">
+                      {explanation.reasons
+                        .split("\n")
+                        .map((r, i) => (
+                          <li key={i}>{r.replace(/^•\s*/, "")}</li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
         </CardContent>
       </Card>
     </div>

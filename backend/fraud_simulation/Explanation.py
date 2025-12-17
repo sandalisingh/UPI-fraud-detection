@@ -1,6 +1,6 @@
 # Explanation.py
 from backend.fraud_simulation.Network import MODEL_PATH
-from backend import get_Hoeffding_tree_model
+from backend import get_scaler, get_vectorizer, get_model
 
 # RULE-BASED REASON ENGINE
 def generate_reasons(x):
@@ -44,25 +44,29 @@ def generate_reasons(x):
     return reasons
 
 # MAIN EXPLANATION FUNCTION
-def explain_user_transaction_hoeffding(raw_input_dict):
-    model = get_Hoeffding_tree_model()
+def explain_single_transaction(raw_input_dict):
+    vectorizer = get_vectorizer()
+    scaler = get_scaler()
+    pass_agg_clf = get_model()
     x = raw_input_dict.copy()
 
-    # Derived helpers
+    # Derived features
     x["VPA_Keyword_Match"] = int(
         any(w in x.get("Receiver_ID", "").lower() for w in ["support", "care", "kyc"])
     )
     x["Is_New_Device"] = int("NEW" in x.get("Device_ID", ""))
+    x["Amount_Change_Ratio"] = float(x["Amount"] / x["Avg_Transaction_Value"])
 
     # Prediction
-    y_pred = model.predict_one(x)
-
-    reasons = generate_reasons(x)
+    x_vec = vectorizer.transform([x])
+    X_scaled = scaler.transform(x_vec)
+    y_pred = pass_agg_clf.predict(X_scaled)[0]
 
     # Output
     if y_pred == "Legit":
         reason_text = "No significant fraud indicators detected."
     else:
+        reasons = generate_reasons(x)
         reason_text = "\n".join([f"• {r}" for r in reasons[:3]])
 
     return y_pred, f"{reason_text}"

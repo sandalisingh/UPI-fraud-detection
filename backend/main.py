@@ -2,8 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.base_model.Prediction_explanation import explain_user_transaction
-from backend.fraud_simulation.Explanation import explain_user_transaction_hoeffding
+from backend.fraud_simulation.Explanation import explain_single_transaction
 
 # FastAPI app
 app = FastAPI(title="UPI Fraud Detection API")
@@ -16,19 +15,7 @@ app.add_middleware(
 )
 
 # Request schema
-class Transaction_V1(BaseModel):
-    step: int
-    type: str
-    amount: float
-    nameOrig: str
-    oldbalanceOrg: float
-    newbalanceOrig: float
-    nameDest: str
-    oldbalanceDest: float
-    newbalanceDest: float
-    isFlaggedFraud: int
-
-class Transaction_V2(BaseModel):
+class Transaction(BaseModel):
     Transaction_ID: str
     Timestamp: str
     Amount: float
@@ -39,7 +26,6 @@ class Transaction_V2(BaseModel):
     Device_ID: str
     Geo_Jump: int
     Network_Type: str
-    Amount_Change_Ratio: float
     Is_First_Time_Receiver: int
     Sender_Account_Age: int
     Avg_Transaction_Value: float
@@ -51,19 +37,11 @@ def health():
     return {"status": "ok"}
 
 # Prediction endpoint
-@app.post("/predict_V1")
-def predict_fraud_V1(txn: Transaction_V1):
-    pred, explanation = explain_user_transaction(txn.dict())
+@app.post("/predict")
+def predict_fraud_V1(txn: Transaction):
+    pred, explanation = explain_single_transaction(txn.dict())
     return {
-        "is_fraud": pred,
+        "fraud_type": pred,
         "explanation": explanation
     }
 
-# Prediction endpoint
-@app.post("/predict_V2")
-def predict_fraud_V2(txn: Transaction_V2):
-    pred, reasons = explain_user_transaction_hoeffding(txn.dict())
-    return {
-        "fraud_type": pred,
-        "reasons": reasons
-    }
