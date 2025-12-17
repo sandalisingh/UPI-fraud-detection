@@ -1,5 +1,3 @@
-# Explanation.py
-from backend.fraud_simulation.Network import MODEL_PATH
 from backend import get_scaler, get_vectorizer, get_model
 
 # RULE-BASED REASON ENGINE
