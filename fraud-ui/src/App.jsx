@@ -63,7 +63,7 @@ const initialForm = [...TRANSACTION_FIELDS, ...USER_FIELDS].reduce((acc, f) => {
 
 export default function App() {
   const [form, setForm] = useState(initialForm);
-  const [explanation, setExplanation] = useState(null);
+  const [prediction, setPrediction] = useState(null);
 
   const handleChange = (key, value) => {
     if (NUMERIC_FIELDS.includes(key)) {
@@ -81,7 +81,7 @@ export default function App() {
       });
 
       const data = await res.json();
-      setExplanation(data);
+      setPrediction(data);
     } catch (err) {
       console.error("Error submitting form:", err);
     }
@@ -163,10 +163,8 @@ export default function App() {
 
           <Button className="w-full" onClick={submit}>Analyze Transaction Risk</Button>
 
-          {explanation && (() => {
-            const isFraud =
-              explanation.is_fraud === true ||
-              explanation.fraud_type?.toLowerCase() !== "legit";
+          {prediction && (() => {
+            const isFraud = prediction.fraud_type?.toLowerCase() !== "legit";
 
             return (
               <div
@@ -188,17 +186,17 @@ export default function App() {
                     : "Transaction is safe and approved."}
                 </p>
 
-                {explanation.fraud_type && (
+                {prediction.fraud_type && (
                   <p className="mt-1">
-                    Predicted type: <b>{explanation.fraud_type}</b>
+                    Predicted type: <b>{prediction.fraud_type}</b>
                   </p>
                 )}
 
-                {explanation.reasons && (
+                {prediction.explanation && (
                   <div className="mt-3">
                     <p className="font-semibold">REASONING:</p>
                     <ul className="list-disc ml-6 text-sm">
-                      {explanation.reasons
+                      {prediction.explanation
                         .split("\n")
                         .map((r, i) => (
                           <li key={i}>{r.replace(/^•\s*/, "")}</li>

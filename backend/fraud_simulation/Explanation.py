@@ -41,6 +41,13 @@ def generate_reasons(x):
 
     return reasons
 
+def vpa_semantic_risk(vpa):
+    BRAND_KEYWORDS = [
+        "refund", "cashback", "reward", "support",
+        "kyc", "care", "help", "alerts"
+    ]
+    return int(any(k in vpa.lower() for k in BRAND_KEYWORDS))
+
 # MAIN EXPLANATION FUNCTION
 def explain_single_transaction(raw_input_dict):
     vectorizer = get_vectorizer()
@@ -49,9 +56,7 @@ def explain_single_transaction(raw_input_dict):
     x = raw_input_dict.copy()
 
     # Derived features
-    x["VPA_Keyword_Match"] = int(
-        any(w in x.get("Receiver_ID", "").lower() for w in ["support", "care", "kyc"])
-    )
+    x["VPA_Keyword_Match"] = vpa_semantic_risk(x.get("Receiver_ID", ""))
     x["Is_New_Device"] = int("NEW" in x.get("Device_ID", ""))
     x["Amount_Change_Ratio"] = float(x["Amount"] / x["Avg_Transaction_Value"])
 
@@ -65,6 +70,6 @@ def explain_single_transaction(raw_input_dict):
         reason_text = "No significant fraud indicators detected."
     else:
         reasons = generate_reasons(x)
-        reason_text = "\n".join([f"• {r}" for r in reasons[:3]])
+        reason_text = "\n".join([f"{r}" for r in reasons[:3]])
 
     return y_pred, f"{reason_text}"
