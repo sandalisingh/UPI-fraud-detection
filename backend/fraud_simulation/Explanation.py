@@ -1,3 +1,5 @@
+import shap
+import numpy as np
 from backend import get_scaler, get_vectorizer, get_model
 
 # RULE-BASED REASON ENGINE
@@ -48,28 +50,82 @@ def vpa_semantic_risk(vpa):
     ]
     return int(any(k in vpa.lower() for k in BRAND_KEYWORDS))
 
+def softmax(logits):
+    logits = logits - np.max(logits)  # numerical stability
+    exp = np.exp(logits)
+    return exp / np.sum(exp)
+
 # MAIN EXPLANATION FUNCTION
 def explain_single_transaction(raw_input_dict):
     vectorizer = get_vectorizer()
     scaler = get_scaler()
-    pass_agg_clf = get_model()
+    model = get_model()
+    shap_bg = np.load("shap_background.npy")
+
     x = raw_input_dict.copy()
 
-    # Derived features
+    # ---- Derived features ----
     x["VPA_Keyword_Match"] = vpa_semantic_risk(x.get("Receiver_ID", ""))
     x["Is_New_Device"] = int("NEW" in x.get("Device_ID", ""))
     x["Amount_Change_Ratio"] = float(x["Amount"] / x["Avg_Transaction_Value"])
 
-    # Prediction
-    x_vec = vectorizer.transform([x])
-    X_scaled = scaler.transform(x_vec)
-    y_pred = pass_agg_clf.predict(X_scaled)[0]
+    # ---- Transform ----
+    X_vec = vectorizer.transform([x])
+    X_scaled = scaler.transform(X_vec)
+    feature_names = vectorizer.get_feature_names_out()
 
-    # Output
-    if y_pred == "Legit":
-        reason_text = "No significant fraud indicators detected."
-    else:
-        reasons = generate_reasons(x)
-        reason_text = "\n".join([f"{r}" for r in reasons[:3]])
+    # ---- Predict ----
+    y_pred = model.predict(X_scaled)[0]
 
-    return y_pred, f"{reason_text}"
+    # ---- Risk % ----
+    logits = model.decision_function(X_scaled)[0]
+    probs = softmax(logits)
+    prob_map = dict(zip(model.classes_, probs))
+
+    risk_pct = round((1 - prob_map.get("Legit", 0.0)) * 100, 2)
+
+    # ---- SHAP ----
+    explainer = shap.LinearExplainer(
+        model,
+        shap_bg,
+        feature_names=feature_names
+    )
+
+    shap_values = explainer.shap_values(X_scaled)
+
+    class_idx = list(model.classes_).index(y_pred)
+
+    # Correct extraction
+    shap_vals = shap_values[0, :, class_idx]
+    base_value = explainer.expected_value[class_idx]
+
+    # ---- Remove zero / near-zero features ----
+    filtered = [
+        (f, v, X_scaled[0, i])
+        for i, (f, v) in enumerate(zip(feature_names, shap_vals))
+        if abs(v) >= 0.005
+    ]
+
+    # Sort by impact
+    filtered.sort(key=lambda x: abs(x[1]), reverse=True)
+
+    top_shap_reasons = [
+        f"{f} increased likelihood of {y_pred}"
+        if v > 0 else
+        f"{f} reduced likelihood of {y_pred}"
+        for f, v, _ in filtered[:5]
+    ]
+
+    # ---- Rule reasons ----
+    rule_reasons = (
+        ["No significant fraud indicators detected."]
+        if y_pred == "Legit"
+        else generate_reasons(x)[:3]
+    )
+
+    return {
+        "fraud_type": y_pred,
+        "risk_percent": risk_pct,
+        "shap_reasons": top_shap_reasons,
+        "explanation": rule_reasons
+    }

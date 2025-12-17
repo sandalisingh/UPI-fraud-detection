@@ -173,14 +173,29 @@ export default function App() {
                     : "bg-green-50 border-green-300"
                   }`}
               >
-                <h2
-                  className={`text-lg font-bold ${isFraud ? "text-red-700" : "text-green-700"
-                    }`}
-                >
-                  {isFraud ? "🚩 FRAUD ALERT" : "LEGIT TRANSACTION"}
-                </h2>
+                <div className="flex items-center justify-between">
+                  <h2
+                    className={`text-lg font-bold ${isFraud ? "text-red-700" : "text-green-700"
+                      }`}
+                  >
+                    {isFraud ? "🚩 FRAUD ALERT" : "LEGIT TRANSACTION"}
+                  </h2>
 
-                <p>
+                  {prediction.risk_percent !== undefined && (
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-semibold ${prediction.risk_percent > 70
+                          ? "bg-red-200 text-red-800"
+                          : prediction.risk_percent > 40
+                            ? "bg-yellow-200 text-yellow-800"
+                            : "bg-green-200 text-green-800"
+                        }`}
+                    >
+                      Risk: {prediction.risk_percent}%
+                    </span>
+                  )}
+                </div>
+
+                <p className="mt-1">
                   {isFraud
                     ? "Transaction blocked as potential fraud."
                     : "Transaction is safe and approved."}
@@ -190,6 +205,17 @@ export default function App() {
                   <p className="mt-1">
                     Predicted type: <b>{prediction.fraud_type}</b>
                   </p>
+                )}
+
+                {prediction.shap_reasons?.length > 0 && (
+                  <div className="mt-3">
+                    <p className="font-semibold">MODEL SIGNALS:</p>
+                    <ul className="list-disc ml-6 text-sm">
+                      {prediction.shap_reasons.map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
 
                 {prediction.explanation && (

@@ -39,9 +39,11 @@ def health():
 # Prediction endpoint
 @app.post("/predict")
 def predict_fraud_V1(txn: Transaction):
-    pred, explanation = explain_single_transaction(txn.dict())
+    fraud_type, risk_pct, shap_reasons, explanation = explain_single_transaction(txn.dict())
     return {
-        "fraud_type": pred,
+        "fraud_type": fraud_type,
+        "risk_percent": risk_pct,
+        "shap_reasons": shap_reasons,
         "explanation": explanation
     }
 
