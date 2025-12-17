@@ -60,7 +60,7 @@ def explain_single_transaction(raw_input_dict):
     vectorizer = get_vectorizer()
     scaler = get_scaler()
     model = get_model()
-    shap_bg = np.load("shap_background.npy")
+    shap_bg = np.load("backend/fraud_simulation/shap_background.npy")
 
     x = raw_input_dict.copy()
 
