@@ -222,11 +222,9 @@ export default function App() {
                   <div className="mt-3">
                     <p className="font-semibold">REASONING:</p>
                     <ul className="list-disc ml-6 text-sm">
-                      {prediction.explanation
-                        .split("\n")
-                        .map((r, i) => (
-                          <li key={i}>{r.replace(/^•\s*/, "")}</li>
-                        ))}
+                      {prediction.explanation.map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
                     </ul>
                   </div>
                 )}
