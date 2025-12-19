@@ -48,12 +48,55 @@ def vpa_semantic_risk(vpa):
         "refund", "cashback", "reward", "support",
         "kyc", "care", "help", "alerts"
     ]
-    return int(any(k in vpa.lower() for k in BRAND_KEYWORDS))
+
+    LEGIT_PSP_HANDLES = {
+        "ybl", "ibl", "axl", "okhdfcbank", "okicici", "oksbi", "okaxis", "paytm", 
+        "ptyes", "ptaxis", "pthdfc", "ptsbi", "upi", "apl", "yapl", "rapl",
+        "axisb", "yescred", "icici", "sbi"   
+    }
+
+    vpa = vpa.lower()
+
+    # Brand keyword risk
+    keyword_risk = any(k in vpa for k in BRAND_KEYWORDS)
+
+    # PSP handle risk
+    handle_risk = True
+    if "@" in vpa:
+        handle = vpa.split("@")[-1]
+        handle_risk = handle not in LEGIT_PSP_HANDLES
+
+    # Risk scoring
+    return int(keyword_risk) + int(handle_risk) * 10
 
 def softmax(logits):
     logits = logits - np.max(logits)  # numerical stability
     exp = np.exp(logits)
     return exp / np.sum(exp)
+
+def get_current_features(txn):
+    x = {
+        # Transaction info
+        "Amount": txn["Amount"],
+        "Transaction_Type": txn["Transaction_Type"],
+        "Channel": txn["Channel"],
+        "Network_Type": txn["Network_Type"],
+
+        # Sender and receiver info
+        "Geo_Jump": txn["Geo_Jump"],
+        "Is_First_Time_Receiver": txn["Is_First_Time_Receiver"],
+        "Sender_Account_Age": txn["Sender_Account_Age"],
+        "Avg_Transaction_Value": txn["Avg_Transaction_Value"],
+        "Txn_Count_1h": txn["Txn_Count_1h"],
+        "Time_Since_Last_Txn": txn["Time_Since_Last_Txn"],
+
+        # Derived features
+        "Hour_of_Day": txn["Timestamp"].hour,
+        "Amount_Change_Ratio": round(txn["Amount"] / (txn["Avg_Transaction_Value"] + 1), 2),
+        "Is_New_Device": int("NEW" in txn["Device_ID"]),
+        "VPA_Semantic_Risk": vpa_semantic_risk(txn["Receiver_ID"]),
+    }
+    return x
 
 # MAIN EXPLANATION FUNCTION
 def explain_single_transaction(raw_input_dict):
@@ -62,12 +105,7 @@ def explain_single_transaction(raw_input_dict):
     model = get_model()
     shap_bg = np.load("backend/fraud_simulation/shap_background.npy")
 
-    x = raw_input_dict.copy()
-
-    # ---- Derived features ----
-    x["VPA_Keyword_Match"] = vpa_semantic_risk(x.get("Receiver_ID", ""))
-    x["Is_New_Device"] = int("NEW" in x.get("Device_ID", ""))
-    x["Amount_Change_Ratio"] = float(x["Amount"] / x["Avg_Transaction_Value"])
+    x = get_current_features(raw_input_dict)
 
     # ---- Transform ----
     X_vec = vectorizer.transform([x])
