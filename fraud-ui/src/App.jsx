@@ -64,6 +64,7 @@ const initialForm = [...TRANSACTION_FIELDS, ...USER_FIELDS].reduce((acc, f) => {
 export default function App() {
   const [form, setForm] = useState(initialForm);
   const [prediction, setPrediction] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (key, value) => {
     if (NUMERIC_FIELDS.includes(key)) {
@@ -73,6 +74,7 @@ export default function App() {
   };
 
   const submit = async () => {
+    setLoading(true);
     try {
       const res = await fetch("https://upi-fraud-detection-sizg.onrender.com/predict", {
         method: "POST",
@@ -82,6 +84,7 @@ export default function App() {
 
       const data = await res.json();
       setPrediction(data);
+      setLoading(false);
     } catch (err) {
       console.error("Error submitting form:", err);
     }
@@ -161,7 +164,9 @@ export default function App() {
             </div>
           </section>
 
-          <Button className="w-full" onClick={submit}>Analyze Transaction Risk</Button>
+          <Button className="w-full mt-2" onClick={submit} disabled={loading}>
+            {loading ? "Analyzing..." : "Analyze Transaction Risk"}
+          </Button>
 
           {prediction && (() => {
             const isFraud = prediction.fraud_type?.toLowerCase() !== "legit";
