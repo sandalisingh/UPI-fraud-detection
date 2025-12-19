@@ -1,6 +1,7 @@
 import shap
 import numpy as np
 from backend import get_scaler, get_vectorizer, get_model
+from datetime import datetime
 
 # RULE-BASED REASON ENGINE
 def generate_reasons(x):
@@ -75,6 +76,7 @@ def softmax(logits):
     return exp / np.sum(exp)
 
 def get_current_features(txn):
+    txn_time = datetime.fromisoformat(txn["Timestamp"].replace("Z", "+00:00"))
     x = {
         # Transaction info
         "Amount": txn["Amount"],
@@ -91,7 +93,7 @@ def get_current_features(txn):
         "Time_Since_Last_Txn": txn["Time_Since_Last_Txn"],
 
         # Derived features
-        "Hour_of_Day": txn["Timestamp"].hour,
+        "Hour_of_Day": txn_time.hour,
         "Amount_Change_Ratio": round(txn["Amount"] / (txn["Avg_Transaction_Value"] + 1), 2),
         "Is_New_Device": int("NEW" in txn["Device_ID"]),
         "VPA_Semantic_Risk": vpa_semantic_risk(txn["Receiver_ID"]),
