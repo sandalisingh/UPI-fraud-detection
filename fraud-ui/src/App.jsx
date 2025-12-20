@@ -212,22 +212,11 @@ export default function App() {
                   </p>
                 )}
 
-                {prediction.shap_reasons?.length > 0 && (
-                  <div className="mt-3">
-                    <p className="font-semibold">MODEL SIGNALS:</p>
-                    <ul className="list-disc ml-6 text-sm">
-                      {prediction.shap_reasons.map((r, i) => (
-                        <li key={i}>{r}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {prediction.explanation && (
+                {prediction.reasons?.length > 0 && (
                   <div className="mt-3">
                     <p className="font-semibold">REASONING:</p>
                     <ul className="list-disc ml-6 text-sm">
-                      {prediction.explanation.map((r, i) => (
+                      {prediction.reasons.map((r, i) => (
                         <li key={i}>{r}</li>
                       ))}
                     </ul>

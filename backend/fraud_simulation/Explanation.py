@@ -4,45 +4,114 @@ from backend import get_scaler, get_vectorizer, get_model
 from datetime import datetime
 
 # RULE-BASED REASON ENGINE
-def generate_reasons(x):
-    reasons = []
-
-    if x.get("Amount", 0) > 100000:
-        reasons.append("Transaction amount exceeds typical limits")
-
-    if x.get("Amount",0) > x.get("Avg_Transaction_Value", 1) * 10:
-        reasons.append("Transaction amount is unusually high compared to average transaction value")
+def generate_reason(f, v):
+    # Amount change ratio
+    if "Amount_Change_Ratio" in f:
+        if v > 5:
+            return "Sudden spike in transaction amount relative to historical average. "
+        else:
+            return "Transaction amount change appears gradual and expected. "
     
-    # ---- Collect Request Scam ----
-    if x.get("Transaction_Type", "") == "Collect_Request":
-        reasons.append("Transaction type is 'Collect Request', which is commonly exploited in scams")
+    # Amount-based reasoning
+    elif "Amount" in f:
+        if v > 50000:
+            return "Unusually high transaction amount observed. "
+        else:
+            return "Transaction amount within sender’s normal range. "
 
-    # ---- ATO / SIM Swap ----
-    if "NEW" in x.get("Device_ID", ""):
-        reasons.append("Transaction initiated from a new or unrecognized device")
+    # Transaction type
+    elif "Transaction_Type" in f:
+        if "Collect_Request" in f:
+            return "Collect request payments are often misused for refund or cashback scams. "
+        elif "Bill_Pay" in f:
+            return "Bill payment transactions can be exploited for refund-based scams. "
+        elif "P2P" in f:
+            return "Direct peer-to-peer transfer, commonly used in impersonation or account takeover frauds. "
+        elif "P2M" in f:
+            return "Merchant payment channel, sometimes abused in QR or fake merchant scams. "
 
-    if x.get("Hour_of_Day", 12) in [1, 2, 3, 4]:
-        reasons.append("Transaction occurred during unusual late-night hours")
+    # Channel
+    elif "Channel" in f:
+        if "QR_Scan" in f:
+            return "QR-based transaction, a known vector for QR code replacement scams. "
+        elif "Intent_Link" in f:
+            return "Transaction initiated via intent link, frequently seen in phishing attacks. "
+        elif "Manual_VPA" in f:
+            return "Manual VPA entry increases risk of sending funds to spoofed or deceptive IDs. "
 
-    # ---- Amount anomalies ----
-    if x.get("Amount_Change_Ratio", 1) > 5:
-        reasons.append("Transaction amount is significantly higher than usual")
+    # Network type
+    elif "Network_Type" in f:
+        if "Public_WiFi" in f:
+            return "Transaction performed over public Wi-Fi, increasing interception or compromise risk. "
+        else:
+            return "Transaction executed over a trusted network. "
 
-    # ---- Trust signals ----
-    if x.get("Is_First_Time_Receiver", 0) == 1:
-        reasons.append("First-time payment to this receiver")
+    # Geo jump
+    elif "Geo_Jump" in f:
+        if v > 100:
+            return "Large geographic location change detected, inconsistent with recent behavior. "
+        elif v > 40:
+            return "Moderate geo-location shift which may indicate remote access or social engineering. "
+        else:
+            return "Minimal geographic movement, consistent with normal usage. "
 
-    if any(w in x.get("Receiver_ID", "").lower() for w in ["support", "kyc", "care"]):
-        reasons.append("Receiver ID resembles a known impersonation pattern")
+    # First-time receiver
+    elif "Is_First_Time_Receiver" in f:
+        if v == 1:
+            return "Funds sent to a first-time receiver, a common trait in scam and mule accounts. "
+        else:
+            return "Receiver has prior transaction history with sender. "
 
-    # ---- Velocity & geo ----
-    if x.get("Txn_Count_1h", 0) >= 5:
-        reasons.append("Multiple transactions attempted in a short period")
+    # Sender account age
+    elif "Sender_Account_Age" in f:
+        if v < 1000:
+            return "Relatively new sender account with limited historical trust. "
+        elif v > 10000:
+            return "Long-standing sender account, typically associated with legitimate behavior. "
 
-    if x.get("Geo_Jump", 0) > 500:
-        reasons.append("Unusual geographic location change detected")
+    # Avg transaction value
+    elif "Avg_Transaction_Value" in f:
+        if v > 0:
+            return "Deviation from sender’s usual transaction value detected. "
+        else:
+            return "Transaction aligns with sender’s historical spending pattern. "
 
-    return reasons
+    # Txn count last 1h
+    elif "Txn_Count_1h" in f:
+        if v > 3:
+            return "Multiple transactions in a short time window suggest automation or panic-driven activity. "
+        else:
+            return "Normal transaction frequency observed. "
+
+    # Time since last txn
+    elif "Time_Since_Last_Txn" in f:
+        if v < 60:
+            return "Very short gap between transactions, indicative of scripted or fraudulent behavior. "
+        else:
+            return "Transaction timing consistent with human usage patterns. "
+
+    # Hour of day
+    elif "Hour_of_Day" in f:
+        if v < 5 or v > 20:
+            return "Transaction executed during off-peak hours, often associated with covert fraud attempts. "
+        else:
+            return "Transaction occurred during regular active hours. "
+
+    # New device
+    elif "Is_New_Device" in f:
+        if v == 1:
+            return "Transaction initiated from a newly observed device, a strong account takeover signal. "
+        else:
+            return "Transaction performed from a previously trusted device. "
+
+    # VPA semantic risk
+    elif "VPA_Semantic_Risk" in f:
+        if v > 0:
+            return "Receiver VPA contains impersonation or brand-mimicking patterns. "
+        else:
+            return "Receiver VPA appears semantically normal. "
+
+    return ""
 
 def vpa_semantic_risk(vpa):
     BRAND_KEYWORDS = [
@@ -140,32 +209,32 @@ def explain_single_transaction(raw_input_dict):
     base_value = explainer.expected_value[class_idx]
 
     # ---- Remove zero / near-zero features ----
-    filtered = [
-        (f, v, X_scaled[0, i])
-        for i, (f, v) in enumerate(zip(feature_names, shap_vals))
-        if abs(v) >= 0.005
-    ]
+    filtered = []
+    for i, (f, shap_v) in enumerate(zip(feature_names, shap_vals)):
+        raw_val = X_vec[0, i]
+
+        # Skip inactive one-hot categorical features
+        if "=" in f and raw_val == 0:
+            continue
+
+        if abs(shap_v) >= 0.005:
+            filtered.append((f, shap_v, raw_val))
+
 
     # Sort by impact
     filtered.sort(key=lambda x: abs(x[1]), reverse=True)
 
-    top_shap_reasons = [
-        f"{f} increased likelihood of {y_pred}"
-        if v > 0 else
-        f"{f} reduced likelihood of {y_pred}"
-        for f, v, _ in filtered[:5]
-    ]
+    top_shap_reasons = []
 
-    # ---- Rule reasons ----
-    rule_reasons = (
-        ["No significant fraud indicators detected."]
-        if y_pred == "Legit"
-        else generate_reasons(x)[:3]
-    )
+    for f, v, _ in filtered[:5]:
+        feature_value =  f"{f}={x[f]}" if "=" not in f else f"{f}"
+        if v > 0:
+            top_shap_reasons.append(generate_reason(f, x[f] if "=" not in f else 0) + f"[{feature_value}]")
+        else:
+            top_shap_reasons.append(generate_reason(f, x[f] if "=" not in f else 0) + f"[{feature_value}]")
 
     return {
         "fraud_type": y_pred,
         "risk_percent": risk_pct,
-        "shap_reasons": top_shap_reasons,
-        "explanation": rule_reasons
+        "reasons": top_shap_reasons,
     }
