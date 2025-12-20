@@ -68,7 +68,7 @@ def generate_reason(f, v):
     elif "Sender_Account_Age" in f:
         if v < 1000:
             return "Relatively new sender account with limited historical trust. "
-        elif v > 10000:
+        else:
             return "Long-standing sender account, typically associated with legitimate behavior. "
 
     # Avg transaction value
