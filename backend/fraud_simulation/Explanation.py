@@ -15,9 +15,11 @@ def generate_reason(f, v):
     # Amount-based reasoning
     elif "Amount" in f:
         if v > 50000:
-            return "Unusually high transaction amount observed. "
+            return "High transaction amount observed. "
+        elif v > 20000:
+            return "Moderately high transaction amount observed. "
         else:
-            return "Transaction amount within sender’s normal range. "
+            return "Transaction amount within normal range. "
 
     # Transaction type
     elif "Transaction_Type" in f:
