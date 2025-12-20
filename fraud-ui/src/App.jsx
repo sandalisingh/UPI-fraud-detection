@@ -8,22 +8,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const TRANSACTION_FIELDS = [
   { label: "Transaction ID", key: "Transaction_ID" },
   { label: "Timestamp", key: "Timestamp" },
-  { label: "Receiver ID", key: "Receiver_ID" },
+  { label: "Receiver UPI ID", key: "Receiver_ID" },
   { label: "Mark if first time receiver", key: "Is_First_Time_Receiver" },
-  { label: "Amount", key: "Amount" },
+  { label: "Amount (daily transaction limit is of 1 Lakh)", key: "Amount" },
   { label: "Transaction type", key: "Transaction_Type" },
   { label: "Channel", key: "Channel" },
   { label: "Network type", key: "Network_Type" },
 ];
 
 const USER_FIELDS = [
-  { label: "Sender ID", key: "Sender_ID" },
+  { label: "Sender UPI ID", key: "Sender_ID" },
   { label: "Device ID", key: "Device_ID" },
-  { label: "Geographical jump", key: "Geo_Jump" },
-  { label: "Sender account age", key: "Sender_Account_Age" },
+  { label: "Geographical jump (0-5000)", key: "Geo_Jump" },
+  { label: "Account age (in days)", key: "Sender_Account_Age" },
   { label: "Average transaction value", key: "Avg_Transaction_Value" },
   { label: "Transaction Count for past 1 hour", key: "Txn_Count_1h" },
-  { label: "Time since last transaction", key: "Time_Since_Last_Txn" },
+  { label: "Time since last transaction (in hours)", key: "Time_Since_Last_Txn" },
 ];
 
 const OPTIONS = {
