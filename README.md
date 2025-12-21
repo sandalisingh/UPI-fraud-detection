@@ -1,18 +1,5 @@
 # UPI Fraud Detection
 
-A comprehensive machine learning-based system for detecting fraudulent transactions in India's Unified Payments Interface (UPI) ecosystem. This project combines data analysis, predictive modeling, and a user-friendly web interface to help identify and prevent financial fraud.
-
-<img src="image.png" alt="Screenshot of UI" height="600">
-
-## Features
-
-- **Advanced ML Models**: Utilizes state-of-the-art machine learning algorithms for fraud detection
-- **Real-time Analysis**: Processes transaction data to provide instant fraud probability scores
-- **Interactive Dashboard**: Web-based UI for transaction analysis and model explanations
-- **Data Preparation Tools**: Comprehensive scripts for data cleaning and feature engineering
-- **API Backend**: RESTful API built with FastAPI for seamless integration
-- **Model Interpretability**: SHAP-based explanations for model predictions
-
 ## Tech Stack
 
 - **Backend**: Python, FastAPI, scikit-learn, pandas, numpy
@@ -67,10 +54,6 @@ The application will be available at `http://localhost:5173` for the frontend an
 UPI-fraud-detection/
 ├── backend/                 # FastAPI backend
 ├── fraud-ui/               # React frontend
-├── upi-fraud-models/       # Trained ML models
-├── Data_preparation*.py    # Data processing scripts
-├── UPI_fraud_detection*.ipynb  # Jupyter notebooks
-└── *.csv                   # Dataset files
 ```
 
 ## Contributing
