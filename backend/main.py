@@ -5,6 +5,7 @@ from datetime import datetime
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from backend.fraud_simulation.Explanation import explain_single_transaction
+from fastapi.exceptions import RequestValidationError
 
 # FastAPI app
 app = FastAPI(title="UPI Fraud Detection API")
@@ -46,12 +47,38 @@ class Transaction(BaseModel):
 def health():
     return {"status": "ok"}
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    messages = []
+
+    for err in exc.errors():
+        field = err["loc"][-1]
+        error_type = err["type"]
+        ctx = err.get("ctx", {})
+
+        # Custom messages per rule
+        if error_type == "less_than_equal":
+            messages.append(f"{field} should be less than {ctx.get('le')}")
+        elif error_type == "greater_than":
+            messages.append(f"{field} should be greater than {ctx.get('gt')}")
+        elif error_type == "value_error.missing":
+            messages.append(f"{field} is required")
+        else:
+            messages.append(f"Invalid value for {field}")
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": messages[0] if messages else "Invalid request"
+        }
+    )
+
+@app.exception_handler(RuntimeError)
+async def runtime_exception_handler(request: Request, exc: RuntimeError):
     return JSONResponse(
         status_code=500,
         content={
-            "error": "Unexpected server error",
+            "error": "Internal server error",
             "message": str(exc)
         }
     )
