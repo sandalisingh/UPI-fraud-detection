@@ -108,7 +108,7 @@ export default function App() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.detail || "Fraud analysis failed");
+        throw new Error(data.error || "Fraud analysis failed");
       }
 
       setPrediction(data);
