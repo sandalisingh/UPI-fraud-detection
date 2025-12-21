@@ -7,19 +7,25 @@ from datetime import datetime
 def generate_reason(f, v):
     # Amount change ratio
     if "Amount_Change_Ratio" in f:
-        if v > 5:
-            return "Sudden spike in transaction amount relative to historical average. "
+        if v >= 10:
+            return "Transaction amount is extremely higher than the sender’s historical average, a strong fraud indicator. "
+        elif v >= 5:
+            return "Sudden spike in transaction amount relative to past behavior. "
+        elif v >= 2:
+            return "Noticeable increase in transaction amount compared to usual spending. "
         else:
-            return "Transaction amount change appears gradual and expected. "
+            return "Transaction amount is consistent with historical spending patterns. "
     
     # Amount-based reasoning
     elif "Amount" in f:
-        if v > 50000:
-            return "High transaction amount observed. "
-        elif v > 20000:
-            return "Moderately high transaction amount observed. "
+        if v >= 80000:
+            return "Very high transaction amount, commonly seen in account takeover and drain attempts. "
+        elif v >= 40000:
+            return "High-value transfer that requires additional scrutiny. "
+        elif v >= 15000:
+            return "Moderately large transaction amount. "
         else:
-            return "Transaction amount within normal range. "
+            return "Transaction amount falls within a normal range. "
 
     # Transaction type
     elif "Transaction_Type" in f:
@@ -50,12 +56,14 @@ def generate_reason(f, v):
 
     # Geo jump
     elif "Geo_Jump" in f:
-        if v > 100:
-            return "Large geographic location change detected, inconsistent with recent behavior. "
-        elif v > 40:
-            return "Moderate geo-location shift which may indicate remote access or social engineering. "
+        if v >= 1000:
+            return "Very large geographic shift detected, strongly inconsistent with prior user behavior. "
+        elif v >= 300:
+            return "Significant geo-location change that may indicate remote or fraudulent access. "
+        elif v >= 80:
+            return "Moderate geographic movement observed. "
         else:
-            return "Minimal geographic movement, consistent with normal usage. "
+            return "Geographic behavior consistent with normal usage. "
 
     # First-time receiver
     elif "Is_First_Time_Receiver" in f:
@@ -66,10 +74,11 @@ def generate_reason(f, v):
 
     # Sender account age
     elif "Sender_Account_Age" in f:
-        if v < 1000:
-            return "Relatively new sender account with limited historical trust. "
-        else:
-            return "Long-standing sender account, typically associated with legitimate behavior. "
+        if v < 180:
+            return "Very new sender account with limited trust history. "
+        elif v < 1000:
+            return "Relatively young account with moderate transaction history. "
+        return "Well-established sender account with long-term usage history. "
 
     # Avg transaction value
     elif "Avg_Transaction_Value" in f:
@@ -80,10 +89,11 @@ def generate_reason(f, v):
 
     # Txn count last 1h
     elif "Txn_Count_1h" in f:
-        if v > 3:
-            return "Multiple transactions in a short time window suggest automation or panic-driven activity. "
-        else:
-            return "Normal transaction frequency observed. "
+        if v >= 6:
+            return "Unusually high transaction frequency in a short time window, suggesting automation or panic-driven activity. "
+        elif v >= 3:
+            return "Multiple transactions observed in a short period. "
+        return "Transaction frequency within normal limits. "
 
     # Time since last txn
     elif "Time_Since_Last_Txn" in f:
@@ -108,10 +118,11 @@ def generate_reason(f, v):
 
     # VPA semantic risk
     elif "VPA_Semantic_Risk" in f:
-        if v > 0:
-            return "Receiver VPA contains impersonation or brand-mimicking patterns. "
-        else:
-            return "Receiver VPA appears semantically normal. "
+        if v > 10:
+            return "Receiver VPA strongly resembles a bank or brand impersonation pattern. "
+        elif v > 0:
+            return "Receiver VPA contains suspicious or deceptive keywords. "
+        return "Receiver VPA appears legitimate and semantically normal. "
 
     return ""
 

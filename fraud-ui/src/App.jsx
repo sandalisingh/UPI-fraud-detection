@@ -23,7 +23,7 @@ const USER_FIELDS = [
   { label: "Account age (in days)", key: "Sender_Account_Age" },
   { label: "Average transaction value", key: "Avg_Transaction_Value" },
   { label: "Transaction Count for past 1 hour", key: "Txn_Count_1h" },
-  { label: "Time since last transaction (in hours)", key: "Time_Since_Last_Txn" },
+  { label: "Last Transaction Time", key: "Last_Txn_Timestamp" },
 ];
 
 const OPTIONS = {
@@ -51,7 +51,6 @@ const NUMERIC_FIELDS = [
   "Avg_Transaction_Value",
   "Geo_Jump",
   "Txn_Count_1h",
-  "Time_Since_Last_Txn",
 ];
 
 // ---------------- INITIAL STATE ----------------
@@ -62,6 +61,7 @@ const initialForm = [...TRANSACTION_FIELDS, ...USER_FIELDS].reduce((acc, f) => {
 }, {});
 
 export default function App() {
+  const [error, setError] = useState(null);
   const [form, setForm] = useState(initialForm);
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -75,20 +75,53 @@ export default function App() {
 
   const submit = async () => {
     setLoading(true);
+    setError(null);
+
     try {
+      const payload = { ...form };
+
+      // --- Compute Time_Since_Last_Txn ---
+      if (form.Last_Txn_Timestamp && form.Timestamp) {
+        const last = new Date(form.Last_Txn_Timestamp);
+        const current = new Date(form.Timestamp);
+
+        if (last > current) {
+          throw new Error("Last transaction time cannot be after current transaction time");
+        }
+
+        payload.Time_Since_Last_Txn = Math.max(
+          Math.floor((current - last) / 1000),
+          0
+        );
+      } else {
+        payload.Time_Since_Last_Txn = 99999;
+      }
+
+      delete payload.Last_Txn_Timestamp;
+
       const res = await fetch("https://upi-fraud-detection-sizg.onrender.com/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Fraud analysis failed");
+      }
+
       setPrediction(data);
-      setLoading(false);
+
     } catch (err) {
-      console.error("Error submitting form:", err);
+      console.error(err);
+      setError(err.message || "Unexpected error occurred");
+      setPrediction(null);
+    } finally {
+      setLoading(false);
     }
   };
+
 
   const renderField = ({ label, key }) => {
     if (key === "Is_First_Time_Receiver") {
@@ -132,7 +165,13 @@ export default function App() {
       <div key={key} className="space-y-1">
         <label className="text-sm font-medium">{label}</label>
         <Input
-          type={key === "Timestamp" ? "datetime-local" : NUMERIC_FIELDS.includes(key) ? "number" : "text"}
+          type={
+            key === "Timestamp" || key === "Last_Txn_Timestamp"
+              ? "datetime-local"
+              : NUMERIC_FIELDS.includes(key)
+                ? "number"
+                : "text"
+          }
           step={NUMERIC_FIELDS.includes(key) ? "any" : undefined}
           required
           value={form[key]}
@@ -168,14 +207,20 @@ export default function App() {
             {loading ? "Analyzing..." : "Analyze Transaction Risk"}
           </Button>
 
-          {prediction && (() => {
+          {error && (
+            <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-300 text-red-700">
+              <b>Error:</b> {error}
+            </div>
+          )}
+
+          {!error && prediction && (() => {
             const isFraud = prediction.fraud_type?.toLowerCase() !== "legit";
 
             return (
               <div
                 className={`mt-4 p-4 rounded-xl border ${isFraud
-                    ? "bg-red-50 border-red-300"
-                    : "bg-green-50 border-green-300"
+                  ? "bg-red-50 border-red-300"
+                  : "bg-green-50 border-green-300"
                   }`}
               >
                 <div className="flex items-center justify-between">
@@ -189,10 +234,10 @@ export default function App() {
                   {prediction.risk_percent !== undefined && (
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-semibold ${prediction.risk_percent > 70
-                          ? "bg-red-200 text-red-800"
-                          : prediction.risk_percent > 40
-                            ? "bg-yellow-200 text-yellow-800"
-                            : "bg-green-200 text-green-800"
+                        ? "bg-red-200 text-red-800"
+                        : prediction.risk_percent > 40
+                          ? "bg-yellow-200 text-yellow-800"
+                          : "bg-green-200 text-green-800"
                         }`}
                     >
                       Risk: {prediction.risk_percent}%
